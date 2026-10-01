@@ -58,29 +58,34 @@ def get_task(task_id: int):
 @app.put("/tasks/{task_id}")
 def update_task(task_id: int, task: TaskCreate):
     connection = get_connection()
-    task = connection.execute(
-        "SELECT * FROM tasks WHERE id = ?", (task_id)
-
+    result = connection.execute(
+        "UPDATE tasks SET title = ?, done = ? WHERE id = ?",
+        (task.title, task.done, task_id)
     )
+    if result.rowcount == 0:
+        connection.close()
+        raise HTTPException(status_code=404, detail="Task not found")
 
-    for existing_task in tasks:
-        if existing_task["id"] == task_id:
-            existing_task["title"] = task.title
-            existing_task["done"] = task.done
+    connection.commit()
+    connection.close()
 
-            return existing_task
-
-    raise HTTPException(status_code=404, detail="Task not found")
+    return { "id": task_id, "title": task.title, "done": task.done 
+            }
 
 
 @app.delete("/tasks/{task_id}")
 def delete_task(task_id: int):
+    connection = get_connection()
+    result = connection.execute(
+        "DELETE FROM tasks WHERE id = ?",
+        (task_id,)
+    )
 
-    for existing_task in tasks:
+    if result.rowcount == 0:
+        connection.close()
+        raise HTTPException(status_code=404, detail="Task not found")
 
-        if existing_task["id"] == task_id:
-            tasks.remove(existing_task)
+    connection.commit()
+    connection.close()
 
-            return {"message": "Task deleted"}
-
-    raise HTTPException(status_code=404, detail="Task not found")
+    return {"message": "Task deleted"}
