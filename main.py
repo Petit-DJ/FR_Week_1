@@ -21,17 +21,15 @@ def get_root():
 
 @app.post("/tasks", status_code=201)
 def create_task(task: TaskCreate):
-    new_id = max(item["id"] for item in tasks) + 1 if tasks else 1
+    connection = get_connection()
+    taskcreate = connection.execute(
+        "INSERT INTO tasks (title, done) VALUES (?, ?)",
+        (task.title, task.done)
+    )
+    connection.commit()
+    connection.close()
 
-    new_task = {
-        "id": new_id,
-        "title": task.title,
-        "done": task.done
-    }
-
-    tasks.append(new_task)
-
-    return new_task
+    return  {"id": taskcreate.lastrowid, "title": task.title, "done": task.done}
 
 
 @app.get("/tasks")
